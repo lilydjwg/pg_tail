@@ -1,10 +1,13 @@
 
+#define _XOPEN_SOURCE 1000
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <getopt.h>
 #include <unistd.h>
 #include <libpq-fe.h>
+#include <locale.h>
+#include <wchar.h>
 
 #define VERSION   "0.1"
 #define INTERVAL  10         /* default polling interval in seconds*/
@@ -35,6 +38,18 @@ static void help(void) {
 static void exit_nicely(PGconn *conn) {
   if(conn) { PQfinish(conn); }
   exit(1);
+}
+
+int strwidth(const char* s){
+  #define WBUF_LEN 1024
+  static wchar_t wbuf[WBUF_LEN];
+  size_t n;
+  n = mbstowcs(wbuf, s, WBUF_LEN);
+  if(n < 0){
+    /* on error, fallback to strlen */
+    return strlen(s);
+  }
+  return wcswidth(wbuf, n);
 }
 
 int main(int argc, char **argv)
@@ -75,6 +90,9 @@ int main(int argc, char **argv)
     {"version",   no_argument,       NULL, 'v'},
     {NULL, 0, NULL, 0}
   };
+
+  /* for wcswidth */
+  setlocale(LC_ALL, "");
 
   if ( argc <= 1 ) {
     help();
@@ -176,8 +194,8 @@ int main(int argc, char **argv)
     }
     for (i = 0; i < num_rows; i++)
       for (j = 0; j < num_fields; j++) {
-        col_length[j] = MAX( col_length[j], strlen(PQfname(res, j)) );
-        col_length[j] = MAX( col_length[j], strlen(PQgetvalue(res, i, j)) );
+        col_length[j] = MAX( col_length[j], strwidth(PQfname(res, j)) );
+        col_length[j] = MAX( col_length[j], strwidth(PQgetvalue(res, i, j)) );
       }
 
     /* header if 1st lap */
