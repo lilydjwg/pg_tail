@@ -171,6 +171,9 @@ int main(int argc, char **argv)
     num_fields = PQnfields(res);
 
     /* columns sizes */
+    for (j = 0; j < num_fields; j++) {
+      col_length[j] = 0;
+    }
     for (i = 0; i < num_rows; i++)
       for (j = 0; j < num_fields; j++) {
         col_length[j] = MAX( col_length[j], strlen(PQfname(res, j)) );
